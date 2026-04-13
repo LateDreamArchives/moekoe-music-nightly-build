@@ -14,7 +14,6 @@ jobs:
     outputs:
       prev_tag: ${{ steps.main.outputs.prev_tag }}
       commit: ${{ steps.main.outputs.commit }}
-      version: ${{ steps.main.outputs.version }}
       fomatted_version: ${{ steps.main.outputs.fomatted_version }}
     steps:
       - name: Checkout repository
@@ -24,13 +23,11 @@ jobs:
           repository: MoeKoeMusic/MoeKoeMusic
       - id: main
         run: |
-          PREV_TAG=$(git describe --tags --abbrev=0)
+          PREV_TAG=$(git tag --sort=-v:refname | head -n 1)
           COMMIT=$(git rev-parse --short HEAD)
-          VERSION=${PREV_TAG}-nightly-$(date +%Y%m%d)-${COMMIT}
           echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
           echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "fomatted_version=${VERSION}-nightly-${COMMIT}" >> "$GITHUB_OUTPUT"
+          echo "fomatted_version=${PREV_TAG}-nightly-${COMMIT}" >> "$GITHUB_OUTPUT"
 
   build:
     needs: generate-version
@@ -53,7 +50,7 @@ jobs:
           cache: 'npm'
       - name: change version
         env:
-          old_version: ${{ needs.generate-version.outputs.version }}
+          old_version: ${{ needs.generate-version.outputs.prev_tag }}
           version: ${{ needs.generate-version.outputs.fomatted_version }}
         run: |
           echo "ℹ change version from ${{ env.old_version }} to ${{ env.version }}"
