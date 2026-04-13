@@ -55,7 +55,8 @@ jobs:
         run: |
           echo "ℹ change version from ${{ env.old_version }} to ${{ env.version }}"
           jq --arg version "${{ env.version }}" '.version = $version' package.json > package.json.new
-          mv -f package.json.new package.json
+          mv package.json package.json.old
+          mv package.json.new package.json
 
       - name: build
         id: build
@@ -83,7 +84,7 @@ jobs:
           tag_name: ${{ needs.generate-version.outputs.fomatted_version }}
           body_path: release-body.md
           files: |
-            dist_electron/MoeKoe_Music_Setup_${{ needs.generate-version.outputs.version }}.exe
+            dist_electron/MoeKoe_Music_Setup_${{ needs.generate-version.outputs.fomatted_version }}.exe
             ${{ steps.build.outputs.dist-mac-arm }}
             ${{ steps.build.outputs.dist-mac-intel }}
             ${{ steps.build.outputs.dist-linux }}
