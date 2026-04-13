@@ -55,7 +55,7 @@ jobs:
         run: |
           echo "ℹ change version from ${{ env.old_version }} to ${{ env.version }}"
           jq --arg version "${{ env.version }}" '.version = $version' package.json > package.json.new
-          mv package.json.new package.json
+          mv -f package.json.new package.json
 
       - name: build
         id: build
