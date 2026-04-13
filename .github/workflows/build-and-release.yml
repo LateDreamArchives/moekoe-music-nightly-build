@@ -5,7 +5,7 @@ permissions:
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 16 * * *' # 0:00 utc+8
   workflow_dispatch:
 
 jobs:
@@ -15,6 +15,7 @@ jobs:
       prev_tag: ${{ steps.main.outputs.prev_tag }}
       commit: ${{ steps.main.outputs.commit }}
       version: ${{ steps.main.outputs.version }}
+      fomatted_version: ${{ steps.main.outputs.fomatted_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -29,6 +30,7 @@ jobs:
           echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
           echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "fomatted_version=${VERSION}-nightly-${COMMIT}" >> "$GITHUB_OUTPUT"
 
   build:
     needs: generate-version
@@ -49,14 +51,20 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: 'npm'
+      - name: change version
+        env:
+          old_version: ${{ needs.generate-version.outputs.version }}
+          version: ${{ needs.generate-version.outputs.fomatted_version }}
+        run: |
+          echo "ℹ change version from ${{ env.old_version }} to ${{ env.version }}"
+          jq --arg version "${{ env.version }}" '.version = $version' package.json > package.json.new
+          mv package.json.new package.json
+
       - name: build
         id: build
         env:
           os: ${{ runner.os == 'Windows' && 'win' || runner.os == 'macOS' && 'macos' || 'linux' }}
-          version: ${{ needs.generate-version.outputs.version }}
         run: |
-          echo "const fs = require('fs'); const packageJson = require('./package.json'); packageJson.version = '${{ env.version }}'.slice(1); fs.writeFileSync('./package.json', JSON.stringify(packageJson, null, 2));" > version.cjs
-          node version.cjs
           npm run install-all
           npm run build
           npm run electron:build:${{ env.os }}
@@ -64,11 +72,19 @@ jobs:
           echo "dist-mac-intel=dist_electron/MoeKoe Music-x64.dmg" >> "$GITHUB_OUTPUT"
           echo "dist-linux=dist_electron/MoeKoe Music.AppImage" >> "$GITHUB_OUTPUT"
           echo "dist-linux-deb=dist_electron/MoeKoe Music.deb" >> "$GITHUB_OUTPUT"
+      - name: generate release body
+        run: |
+          echo "> [!NOTE]  " >> release-body.md
+          echo "> This is a nightly build, if you're looking for the latest version, please wait for the [official release](https://github.com/MoeKoeMusic/MoeKoeMusic/releases).  " >> release-body.md
+          echo "This nightly build is based on commit [${{ needs.generate-version.outputs.commit }}](https://github.com/MoeKoeMusic/MoeKoeMusic/tree/${{ needs.generate-version.outputs.commit }})  " >> release-body.md
+          echo "" >> release-body.md
+          echo "**Full Changes**: https://github.com/MoeKoeMusic/MoeKoeMusic/compare/${{ needs.generate-version.outputs.prev_tag }}...${{ needs.generate-version.outputs.commit }}" >> release-body.md
+          cat release-body.md | echo
       - name: release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ needs.generate-version.outputs.version }}
-          body: '**Full Changes:** https://github.com/MoeKoeMusic/MoeKoeMusic/compare/${{ needs.generate-version.outputs.prev_tag }}...${{ needs.generate-version.outputs.commit }}'
+          tag_name: ${{ needs.generate-version.outputs.fomatted_version }}
+          body_path: release-body.md
           files: |
             dist_electron/MoeKoe_Music_Setup_${{ needs.generate-version.outputs.version }}.exe
             ${{ steps.build.outputs.dist-mac-arm }}
