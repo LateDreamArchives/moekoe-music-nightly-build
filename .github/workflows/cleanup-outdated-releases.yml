@@ -1,4 +1,4 @@
-name: Cleanup outdate releases
+name: Cleanup outdated releases
 
 on:
   schedule:
@@ -21,8 +21,19 @@ jobs:
         run: |
           cutoff_date=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
           releases=$(gh release list --limit 1000 --json tagName,publishedAt -q ".[] | select(.publishedAt < \"$cutoff_date\") | .tagName")
+
+          if [ -z "$releases" ]; then
+              echo "ℹ️ Not found any outdated release"
+              exit 0
+          fi
+
+          count=0
+          OLD_IFS=$IFS
+          IFS=$'\n'
           for tag in $releases; do
-            gh release delete "$tag" --yes --cleanup-tag || true
+              gh release delete "$tag" --yes --cleanup-tag || true
+              ((count++))
           done
-          count=${releases[@]}
-          echo "ℹ️ Cleanned $count outdate release(s)"
+          IFS=$OLD_IFS
+
+          echo "ℹ️ Cleaned $count outdated release(s)"
