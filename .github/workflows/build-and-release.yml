@@ -27,7 +27,7 @@ jobs:
           COMMIT=$(git rev-parse --short HEAD)
           echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
           echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
-          echo "fomatted_version=${PREV_TAG}-nightly-${COMMIT}" >> "$GITHUB_OUTPUT"
+          echo "fomatted_version=${PREV_TAG#v}-nightly-${COMMIT}" >> "$GITHUB_OUTPUT"
 
   build:
     needs: generate-version
@@ -66,10 +66,6 @@ jobs:
           npm run install-all
           npm run build
           npm run electron:build:${{ env.os }}
-          echo "dist-mac-arm=dist_electron/MoeKoe Music-arm64.dmg" >> "$GITHUB_OUTPUT"
-          echo "dist-mac-intel=dist_electron/MoeKoe Music-x64.dmg" >> "$GITHUB_OUTPUT"
-          echo "dist-linux=dist_electron/MoeKoe Music.AppImage" >> "$GITHUB_OUTPUT"
-          echo "dist-linux-deb=dist_electron/MoeKoe Music.deb" >> "$GITHUB_OUTPUT"
       - name: generate release body
         run: |
           echo "> [!NOTE]  " >> release-body.md
@@ -84,8 +80,10 @@ jobs:
           tag_name: ${{ needs.generate-version.outputs.fomatted_version }}
           body_path: release-body.md
           files: |
-            dist_electron/MoeKoe_Music_Setup_${{ needs.generate-version.outputs.fomatted_version }}.exe
-            ${{ steps.build.outputs.dist-mac-arm }}
-            ${{ steps.build.outputs.dist-mac-intel }}
-            ${{ steps.build.outputs.dist-linux }}
-            ${{ steps.build.outputs.dist-linux-deb }}
+            ./dist_electron/*.exe
+            ./dist_electron/*.zip
+            ./dist_electron/*.dmg
+            ./dist_electron/*.AppImage
+            ./dist_electron/*.deb
+            ./dist_electron/*.blockmap
+            ./dist_electron/latest*.yml
