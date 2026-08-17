@@ -69,14 +69,15 @@ jobs:
       - name: generate release body
         run: |
           echo "> [!NOTE]  " >> release-body.md
-          echo "> This is a nightly build, if you're looking for the latest version, please wait for the [official release](https://github.com/MoeKoeMusic/MoeKoeMusic/releases).  " >> release-body.md
-          echo "This nightly build is based on commit [${{ needs.generate-version.outputs.commit }}](https://github.com/MoeKoeMusic/MoeKoeMusic/tree/${{ needs.generate-version.outputs.commit }})  " >> release-body.md
+          echo "> This is a ci build for [development branch from LateDreamXD](https://github.com/LateDreamXD/MoeKoeMusic/tree/dev), if you're looking for the latest version, please wait for the [official merge and release](https://github.com/MoeKoeMusic/MoeKoeMusic/releases).  " >> release-body.md
+          echo "This ci build is based on commit [${{ needs.generate-version.outputs.commit }}](https://github.com/LateDreamXD/MoeKoeMusic/commit/${{ needs.generate-version.outputs.commit }})  " >> release-body.md
           echo "" >> release-body.md
-          echo "**Full Changes**: https://github.com/MoeKoeMusic/MoeKoeMusic/compare/${{ needs.generate-version.outputs.prev_tag }}...${{ needs.generate-version.outputs.commit }}" >> release-body.md
+          echo "**Full Changes**: https://github.com/LateDreamXD/MoeKoeMusic/commits/dev" >> release-body.md
           cat release-body.md | echo
       - name: release
         uses: softprops/action-gh-release@v3
         with:
+          prerelease: true
           tag_name: ${{ needs.generate-version.outputs.fomatted_version }}
           body_path: release-body.md
           files: |
